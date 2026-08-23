@@ -4,8 +4,8 @@ const STORAGE_KEY = 'SIM_TRACKER_DATA_V3';
 function maskPhoneNumber(phoneStr) {
   if (!phoneStr) return '';
   const cleanStr = phoneStr.trim();
-  if (cleanStr.length <= 4) return '****';
-  return cleanStr.slice(0, -4) + '****';
+  if (cleanStr.length <= 7) return '*******';
+  return cleanStr.slice(0, -7) + '*******';
 }
 
 function formatRupiah(amount) {
