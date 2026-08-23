@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIM Card & Transaction Tracker PWA</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2563eb">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen p-4 md:p-8 font-sans antialiased">
+  <div class="max-w-4xl mx-auto space-y-6">
+    
+    <!-- Header -->
+    <header class="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-slate-800 pb-4 gap-4">
+      <div>
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-sim-card text-2xl text-blue-500 font-bold"></i>
+          <h1 class="text-2xl font-bold text-blue-400">SIM Tracker Pro</h1>
+        </div>
+        <p class="text-xs text-slate-400 mt-1">Monitoring Masa Aktif, Tenggang & Riwayat Transaksi Kartu SIM</p>
+      </div>
+      <div class="flex items-center gap-2 w-full sm:w-auto">
+        <button onclick="toggleForm()" class="flex-1 sm:flex-initial bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl text-sm font-semibold transition flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20">
+          <i class="fa-solid fa-plus"></i> Tambah Kartu
+        </button>
+      </div>
+    </header>
+
+    <!-- Ringkasan Statistik Dashboard -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="bg-slate-800/80 border border-slate-700/60 p-3.5 rounded-xl">
+        <p class="text-xs text-slate-400">Total Kartu</p>
+        <p class="text-xl font-bold text-slate-100 mt-1" id="statTotalCards">0</p>
+      </div>
+      <div class="bg-slate-800/80 border border-slate-700/60 p-3.5 rounded-xl">
+        <p class="text-xs text-emerald-400 font-medium">Status Aktif</p>
+        <p class="text-xl font-bold text-emerald-400 mt-1" id="statActiveCards">0</p>
+      </div>
+      <div class="bg-slate-800/80 border border-slate-700/60 p-3.5 rounded-xl">
+        <p class="text-xs text-amber-400 font-medium">Masa Tenggang</p>
+        <p class="text-xl font-bold text-amber-400 mt-1" id="statGraceCards">0</p>
+      </div>
+      <div class="bg-slate-800/80 border border-slate-700/60 p-3.5 rounded-xl">
+        <p class="text-xs text-blue-400 font-medium">Total Pengeluaran</p>
+        <p class="text-lg font-bold text-blue-400 mt-1 truncate" id="statTotalExpense">Rp 0</p>
+      </div>
+    </div>
+
+    <!-- Toolbar Pencarian & Filter -->
+    <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
+      <div class="relative w-full sm:w-72">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
+        <input type="text" id="searchInput" oninput="renderCards()" placeholder="Cari Provider / Nomor..." class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+      </div>
+      <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <select id="statusFilter" onchange="renderCards()" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-blue-500">
+          <option value="ALL">Semua Status</option>
+          <option value="AKTIF">Aktif</option>
+          <option value="MASA TENGGANG">Masa Tenggang</option>
+          <option value="HANGUS">Hangus</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Form Input Kartu Baru (Hidden by default) -->
+    <div id="cardForm" class="hidden bg-slate-800 p-5 rounded-2xl border border-slate-700 shadow-xl space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-700/80 pb-3">
+        <h2 class="text-base font-bold text-slate-200 flex items-center gap-2">
+          <i class="fa-solid fa-id-card text-blue-400"></i> Form Tambah Kartu SIM
+        </h2>
+        <button onclick="toggleForm()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="saveCard(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Provider / Label Kartu</label>
+          <input type="text" id="provider" placeholder="Contoh: Telkomsel Utama, Indosat IoT" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Nomor Kartu SIM</label>
+          <input type="tel" id="phoneNumber" placeholder="08123456789" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+          <p class="text-[10px] text-slate-500 mt-1"><i class="fa-solid fa-shield-halved text-blue-400"></i> 4 digit belakang akan otomatis disembunyikan (****) pada tampilan.</p>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Akhir Masa Aktif Saat Ini</label>
+          <input type="date" id="activeExpiry" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Akhir Masa Tenggang Saat Ini</label>
+          <input type="date" id="graceExpiry" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+        </div>
+        <div class="md:col-span-2 flex justify-end gap-2 pt-2 border-t border-slate-700/50">
+          <button type="button" onclick="toggleForm()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-medium">Batal</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold">Simpan Kartu</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Container Grid Kartu SIM -->
+    <div id="simContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+
+  </div>
+
+  <!-- Modal Transaksi / Isi Ulang Masa Aktif & Paket -->
+  <div id="topupModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-slate-800 border border-slate-700 w-full max-w-md rounded-2xl p-5 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+        <div>
+          <h3 class="text-base font-bold text-blue-400" id="topupTitle">Beli Paket / Masa Aktif</h3>
+          <p class="text-xs font-mono text-slate-400" id="topupSubtitle"></p>
+        </div>
+        <button onclick="closeTopupModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <form onsubmit="processTopup(event)" class="space-y-4">
+        <input type="hidden" id="topupCardId">
+        
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Jenis Transaksi</label>
+            <select id="topupType" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+              <option value="paket_data">Paket Data</option>
+              <option value="masa_aktif">Masa Aktif Murni</option>
+              <option value="pulsa">Isi Pulsa</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Harga / Biaya (Rp)</label>
+            <input type="number" id="topupPrice" min="0" placeholder="0" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Nama Paket / Catatan</label>
+          <input type="text" id="topupPackageName" placeholder="Contoh: Internet OMG 20GB, Perpanjang 30hr" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Tambahan Masa Aktif (Hari)</label>
+          <div class="grid grid-cols-4 gap-2 mb-2">
+            <button type="button" onclick="setDays(7)" class="bg-slate-700 hover:bg-slate-600 py-1.5 text-xs rounded-lg text-slate-200 transition">+7 Hari</button>
+            <button type="button" onclick="setDays(14)" class="bg-slate-700 hover:bg-slate-600 py-1.5 text-xs rounded-lg text-slate-200 transition">+14 Hari</button>
+            <button type="button" onclick="setDays(30)" class="bg-slate-700 hover:bg-slate-600 py-1.5 text-xs rounded-lg text-slate-200 transition">+30 Hari</button>
+            <button type="button" onclick="setDays(60)" class="bg-slate-700 hover:bg-slate-600 py-1.5 text-xs rounded-lg text-slate-200 transition">+60 Hari</button>
+          </div>
+          <input type="number" id="daysToAdd" min="1" placeholder="Masukkan jumlah hari" required oninput="updatePreviewDates()" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500">
+        </div>
+
+        <!-- Preview Estimasi Masa Berlaku Baru -->
+        <div id="previewBox" class="bg-slate-900/80 p-3 rounded-xl border border-slate-700/70 text-xs space-y-1">
+          <p class="text-slate-400 font-semibold mb-1 border-b border-slate-800 pb-1">Estimasi Tanggal Baru:</p>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Masa Aktif Baru:</span>
+            <span id="previewNewActive" class="font-medium text-emerald-400">-</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-slate-400">Masa Tenggang Baru:</span>
+            <span id="previewNewGrace" class="font-medium text-amber-400">-</span>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t border-slate-700/50">
+          <button type="button" onclick="closeTopupModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-medium">Batal</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold">Simpan Transaksi</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Riwayat Transaksi -->
+  <div id="historyModal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-slate-800 border border-slate-700 w-full max-w-xl rounded-2xl p-5 space-y-4 shadow-2xl max-h-[85vh] flex flex-col">
+      <div class="flex justify-between items-center border-b border-slate-700 pb-3 flex-shrink-0">
+        <div>
+          <h3 class="text-base font-bold text-blue-400 flex items-center gap-2">
+            <i class="fa-solid fa-clock-rotate-left"></i> Riwayat Transaksi Kartu
+          </h3>
+          <p class="text-xs font-mono text-slate-400" id="historySubtitle"></p>
+        </div>
+        <button onclick="closeHistoryModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Ringkasan Spending Kartu -->
+      <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-700/50 flex justify-between items-center text-xs flex-shrink-0">
+        <span class="text-slate-400">Total Transaksi Kartu Ini:</span>
+        <span id="historyTotalAmount" class="font-bold text-emerald-400 text-sm">Rp 0</span>
+      </div>
+
+      <!-- Daftar List Riwayat -->
+      <div id="historyListContainer" class="space-y-2 overflow-y-auto pr-1 flex-1 min-h-[200px]">
+        <!-- Rendered via JS -->
+      </div>
+
+      <div class="flex justify-between items-center pt-3 border-t border-slate-700 flex-shrink-0">
+        <button onclick="clearCardHistory()" class="text-xs text-rose-400 hover:text-rose-300 font-medium flex items-center gap-1">
+          <i class="fa-solid fa-trash-can"></i> Bersihkan Riwayat
+        </button>
+        <button type="button" onclick="closeHistoryModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-medium">Tutup</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Service Worker Registered:', reg.scope))
+          .catch(err => console.error('Service Worker Registration Failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>
